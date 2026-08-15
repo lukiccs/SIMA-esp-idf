@@ -12,23 +12,23 @@ Motor::Motor(const MotorConfig& config) : config_(config)
 }
 
 Motor::~Motor(){
-    ledc_set_duty(LEDC_LOW_SPEED_MODE, config_.channelForward, 0);
-    ledc_update_duty(LEDC_LOW_SPEED_MODE, config_.channelForward);
+    ledc_set_duty(LEDC_LOW_SPEED_MODE, config_.channelPWM, 0);
+    ledc_update_duty(LEDC_LOW_SPEED_MODE, config_.channelPWM);
 
-    ledc_set_duty(LEDC_LOW_SPEED_MODE, config_.channelBackward, 0);
-    ledc_update_duty(LEDC_LOW_SPEED_MODE, config_.channelBackward);
+    gpio_set_level(config_.pinIN1, 0);
+    gpio_set_level(config_.pinIN2, 0);
 }
 
 void Motor::init()
 {
-    gpio_reset_pin(config_.pinForward);
-    gpio_reset_pin(config_.pinBackward);
+    gpio_reset_pin(config_.pinIN1);
+    gpio_reset_pin(config_.pinIN2);
 
-    gpio_set_direction(config_.pinForward, GPIO_MODE_OUTPUT);
-    gpio_set_direction(config_.pinBackward, GPIO_MODE_OUTPUT);
+    gpio_set_direction(config_.pinIN1, GPIO_MODE_OUTPUT);
+    gpio_set_direction(config_.pinIN2, GPIO_MODE_OUTPUT);
 
-    gpio_set_level(config_.pinForward, 0);
-    gpio_set_level(config_.pinBackward, 0);
+    gpio_set_level(config_.pinIN1, 0);
+    gpio_set_level(config_.pinIN2, 0);
 
     ledc_timer_config_t timer_config = {
         .speed_mode         = LEDC_LOW_SPEED_MODE,
@@ -40,10 +40,10 @@ void Motor::init()
     };
     ledc_timer_config(&timer_config);
 
-    ledc_channel_config_t channel_config_forward = {
-        .gpio_num       = config_.pinForward,
+    ledc_channel_config_t channel_config = {
+        .gpio_num       = config_.pinPWM,
         .speed_mode     = LEDC_LOW_SPEED_MODE,
-        .channel        = config_.channelForward,
+        .channel        = config_.channelPWM,
         .intr_type      = LEDC_INTR_DISABLE,
         .timer_sel      = LEDC_TIMER_0,
         .duty           = 0,
@@ -54,22 +54,22 @@ void Motor::init()
         },
         .deconfigure    = false
     };
-    ledc_channel_config(&channel_config_forward);
-    ledc_channel_config_t channel_config_backward = {
-        .gpio_num       = config_.pinBackward,
-        .speed_mode     = LEDC_LOW_SPEED_MODE,
-        .channel        = config_.channelBackward,
-        .intr_type      = LEDC_INTR_DISABLE,
-        .timer_sel      = LEDC_TIMER_0,
-        .duty           = 0,
-        .hpoint         = 0,
-        .sleep_mode     = LEDC_SLEEP_MODE_NO_ALIVE_NO_PD,
-        .flags = {
-            .output_invert = 0
-        },
-        .deconfigure    = false
-    };
-    ledc_channel_config(&channel_config_backward);
+    ledc_channel_config(&channel_config);
+    // ledc_channel_config_t channel_config_backward = {
+    //     .gpio_num       = config_.pinBackward,
+    //     .speed_mode     = LEDC_LOW_SPEED_MODE,
+    //     .channel        = config_.channelBackward,
+    //     .intr_type      = LEDC_INTR_DISABLE,
+    //     .timer_sel      = LEDC_TIMER_0,
+    //     .duty           = 0,
+    //     .hpoint         = 0,
+    //     .sleep_mode     = LEDC_SLEEP_MODE_NO_ALIVE_NO_PD,
+    //     .flags = {
+    //         .output_invert = 0
+    //     },
+    //     .deconfigure    = false
+    // };
+    // ledc_channel_config(&channel_config_backward);
 }
 
 void Motor::setPWM(float pwm)
@@ -83,63 +83,72 @@ void Motor::setPWM(float pwm)
     );
 
     if(pwm > 0){
-        ledc_set_duty(
-            LEDC_LOW_SPEED_MODE,
-            config_.channelBackward,
-            0
-        );
-        ledc_update_duty(
-            LEDC_LOW_SPEED_MODE,
-            config_.channelBackward
-        );
-        ledc_set_duty(
-            LEDC_LOW_SPEED_MODE,
-            config_.channelForward,
-            duty
-        );
-        ledc_update_duty(
-            LEDC_LOW_SPEED_MODE,
-            config_.channelForward
-        );
+        gpio_set_level(config_.pinIN1, 1);
+        gpio_set_level(config_.pinIN2, 0);
+
+        // ledc_set_duty(
+        //     LEDC_LOW_SPEED_MODE,
+        //     config_.channelBackward,
+        //     0
+        // );
+        // ledc_update_duty(
+        //     LEDC_LOW_SPEED_MODE,
+        //     config_.channelBackward
+        // );
+        // ledc_set_duty(
+        //     LEDC_LOW_SPEED_MODE,
+        //     config_.channelForward,
+        //     duty
+        // );
+        // ledc_update_duty(
+        //     LEDC_LOW_SPEED_MODE,
+        //     config_.channelForward
+        // );
     }
     else if(pwm < 0){
-        ledc_set_duty(
-            LEDC_LOW_SPEED_MODE,
-            config_.channelForward,
-            0
-        );
-        ledc_update_duty(
-            LEDC_LOW_SPEED_MODE,
-            config_.channelForward
-        );
-        ledc_set_duty(
-            LEDC_LOW_SPEED_MODE,
-            config_.channelBackward,
-            duty
-        );
-        ledc_update_duty(
-            LEDC_LOW_SPEED_MODE,
-            config_.channelBackward
-        );
+        gpio_set_level(config_.pinIN2, 1);
+        gpio_set_level(config_.pinIN1, 0);
+        // ledc_set_duty(
+        //     LEDC_LOW_SPEED_MODE,
+        //     config_.channelForward,
+        //     0
+        // );
+        // ledc_update_duty(
+        //     LEDC_LOW_SPEED_MODE,
+        //     config_.channelForward
+        // );
+        // ledc_set_duty(
+        //     LEDC_LOW_SPEED_MODE,
+        //     config_.channelBackward,
+        //     duty
+        // );
+        // ledc_update_duty(
+        //     LEDC_LOW_SPEED_MODE,
+        //     config_.channelBackward
+        // );
     }
     else{
-        ledc_set_duty(
-            LEDC_LOW_SPEED_MODE,
-            config_.channelForward,
-            0
-        );
-        ledc_update_duty(
-            LEDC_LOW_SPEED_MODE,
-            config_.channelForward
-        );
-        ledc_set_duty(
-            LEDC_LOW_SPEED_MODE,
-            config_.channelBackward,
-            0
-        );
-        ledc_update_duty(
-            LEDC_LOW_SPEED_MODE,
-            config_.channelBackward
-        );
+        gpio_set_level(config_.pinIN1, 0);
+        gpio_set_level(config_.pinIN2, 0);
+        // ledc_set_duty(
+        //     LEDC_LOW_SPEED_MODE,
+        //     config_.channelForward,
+        //     0
+        // );
+        // ledc_update_duty(
+        //     LEDC_LOW_SPEED_MODE,
+        //     config_.channelForward
+        // );
+        // ledc_set_duty(
+        //     LEDC_LOW_SPEED_MODE,
+        //     config_.channelBackward,
+        //     0
+        // );
+        // ledc_update_duty(
+        //     LEDC_LOW_SPEED_MODE,
+        //     config_.channelBackward
+        // );
     }
+    ledc_set_duty(LEDC_LOW_SPEED_MODE, config_.channelPWM, duty);
+    ledc_update_duty(LEDC_LOW_SPEED_MODE, config_.channelPWM);
 }

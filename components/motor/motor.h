@@ -3,10 +3,10 @@
 #include "driver/gpio.h"
 
 struct MotorConfig{
-    gpio_num_t pinForward;
-    gpio_num_t pinBackward;
-    ledc_channel_t channelForward;
-    ledc_channel_t channelBackward;
+    gpio_num_t pinIN1;
+    gpio_num_t pinIN2;
+    gpio_num_t pinPWM;
+    ledc_channel_t channelPWM;
 };
 
 
