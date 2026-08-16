@@ -3,6 +3,7 @@
 #include "i2cDriver.h"
 #include "AS5600.h"
 #include "speedController.h"
+#include "odometrija.h"
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -57,6 +58,8 @@ extern "C" void app_main(){
     PIController leftPI(20.0f, 15.0f, 20.0f);
     PIController rightPI(20.0f, 15.0f, 20.0f);
 
+    Odometry odometry(30.5, 89);
+
     bus1.init();
     bus2.init();
 
@@ -72,6 +75,11 @@ extern "C" void app_main(){
         float feedforward = Kv * desAngVel;
         float radAngleLeft = enkoderLeft.readRadAngle();
         float radAngleRight = enkoderRight.readRadAngle();
+
+        float deltaAngleLeft = radAngleLeft - prevRadAngleLeft;
+        float deltaAngleRight = radAngleRight - prevRadAngleRight;
+        odometry.update(deltaAngleLeft, deltaAngleRight);
+
         float angularVelLeft = -enkoderLeft.getAngularVel(prevRadAngleLeft, radAngleLeft);
         float angularVelRight = enkoderRight.getAngularVel(prevRadAngleRight, radAngleRight);
         
@@ -95,6 +103,7 @@ extern "C" void app_main(){
             radAngleRight,
             angularVelRight,
             controlInputRight);
+        printf("X: %.2f, Y: %.2f, theta: %.2f\n", odometry.getX(), odometry.getY(), odometry.getTheta());
 
         vTaskDelayUntil(&lastWakeTime, pdMS_TO_TICKS(10));
 

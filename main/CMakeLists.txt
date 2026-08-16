@@ -4,4 +4,5 @@ idf_component_register(SRCS "SIME.cpp"
                         motor
                         i2c
                         encoder
-                        speedControler)
+                        speedControler
+                        odometrija)
