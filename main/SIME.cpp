@@ -14,160 +14,96 @@
 extern "C" void app_main(){
 
     MotorConfig leftConfig = {
-        .pinIN1 = GPIO_NUM_25,
-        .pinIN2 = GPIO_NUM_26,
-        .pinPWM = GPIO_NUM_27,
+        .pinIN1 = GPIO_NUM_10,
+        .pinIN2 = GPIO_NUM_9,
+        .pinPWM = GPIO_NUM_8,
         .channelPWM = LEDC_CHANNEL_0
     };
     Motor leftMotor(leftConfig);
 
     MotorConfig rightConfig = {
-        .pinIN1 = GPIO_NUM_32,
-        .pinIN2 = GPIO_NUM_33,
-        .pinPWM = GPIO_NUM_14,
+        .pinIN1 = GPIO_NUM_11,
+        .pinIN2 = GPIO_NUM_12,
+        .pinPWM = GPIO_NUM_13,
         .channelPWM = LEDC_CHANNEL_1
     };
     Motor rightMotor(rightConfig);
 
-    // BusConfig busConfig = {
-    //     .port = I2C_NUM_0,
-    //     .pinSDA = GPIO_NUM_21,
-    //     .pinSCL = GPIO_NUM_22
-    // };
-    // i2cBus bus(busConfig);
+    //Left encoder setup
+    BusConfig busConfig1 = {
+        .port = I2C_NUM_0,
+        .pinSDA = GPIO_NUM_2,
+        .pinSCL = GPIO_NUM_1
+    };
+    i2cBus bus1(busConfig1);
+    DeviceConfig enkoderConfig1 = {
+        .deviceAddr = 0x36,
+        .SCLfreq = 100000
+    };
+    AS5600 enkoderLeft(bus1, enkoderConfig1);
+    //Right encoder setup
+    BusConfig busConfig2 = {
+        .port = I2C_NUM_1,
+        .pinSDA = GPIO_NUM_6,
+        .pinSCL = GPIO_NUM_5
+    };
+    i2cBus bus2(busConfig2);
+    DeviceConfig enkoderConfig2 = {
+        .deviceAddr = 0x36,
+        .SCLfreq = 100000
+    };
+    AS5600 enkoderRight(bus2, enkoderConfig2);
 
-    // DeviceConfig enkoderConfig = {
-    //     .deviceAddr = 0x36,
-    //     .SCLfreq = 100000
-    // };
-    // AS5600 enkoder(bus, enkoderConfig);
+    PIController leftPI(20.0f, 15.0f, 20.0f);
+    PIController rightPI(20.0f, 15.0f, 20.0f);
 
-    // PIController leftPI(20.0f, 15.0f, 20.0f);
+    bus1.init();
+    bus2.init();
 
-    // bus.init();
-
-    // enkoder.init();
+    enkoderLeft.init();
+    enkoderRight.init();
     
-    // float prevRadAngle = enkoder.readRadAngle();
-    // float Kv = 16.94;
-    // TickType_t lastWakeTime = xTaskGetTickCount();
-    // while(true){
-    //     float desAngVel = 6.0f;
-    //     float feedforward = Kv * desAngVel;
-    //     float radAngle = enkoder.readRadAngle();
-    //     float angularVel = enkoder.getAngularVel(prevRadAngle, radAngle);
+    float prevRadAngleLeft = enkoderLeft.readRadAngle();
+    float prevRadAngleRight = enkoderRight.readRadAngle();
+    float Kv = 16.94;
+    TickType_t lastWakeTime = xTaskGetTickCount();
+    while(true){
+        float desAngVel = 4.0f;
+        float feedforward = Kv * desAngVel;
+        float radAngleLeft = enkoderLeft.readRadAngle();
+        float radAngleRight = enkoderRight.readRadAngle();
+        float angularVelLeft = -enkoderLeft.getAngularVel(prevRadAngleLeft, radAngleLeft);
+        float angularVelRight = enkoderRight.getAngularVel(prevRadAngleRight, radAngleRight);
         
         
-    //     float update = leftPI.update(desAngVel, angularVel, 0.01f, feedforward);
-    //     float controlInput = feedforward + update;
-    //     leftMotor.setPWM(controlInput);
-    //     prevRadAngle = radAngle;
-    //     printf("Rad Angle: %.3f, angular vel: %.3f, CI: %.3f\n", radAngle, angularVel, controlInput);
-    //     vTaskDelayUntil(&lastWakeTime, pdMS_TO_TICKS(10));
+        float updateLeft = leftPI.update(desAngVel, angularVelLeft, 0.01f, feedforward);
+        float updateRight = rightPI.update(desAngVel, angularVelRight, 0.01f, feedforward);
+        float controlInputLeft = feedforward + updateLeft;
+        float controlInputRight = feedforward + updateRight;
+        leftMotor.setPWM(controlInputLeft);
+        rightMotor.setPWM(controlInputRight);
+        prevRadAngleLeft = radAngleLeft;
+        prevRadAngleRight = radAngleRight;
+        printf(
+            "L: angle=%.3f vel=%.3f CI=%.3f | "
+            "R: angle=%.3f vel=%.3f CI=%.3f\n",
 
-    // }
-    // leftMotor.setPWM(100);
-    while (true){
-        leftMotor.setPWM(100);
-        rightMotor.setPWM(100);
-        printf("100\n");
+            radAngleLeft,
+            angularVelLeft,
+            controlInputLeft,
 
-        vTaskDelay(pdMS_TO_TICKS(3000));
+            radAngleRight,
+            angularVelRight,
+            controlInputRight);
 
-        leftMotor.setPWM(150);
-        rightMotor.setPWM(150);
-        printf("150\n");
+        vTaskDelayUntil(&lastWakeTime, pdMS_TO_TICKS(10));
 
-        vTaskDelay(pdMS_TO_TICKS(3000));
-
-        leftMotor.setPWM(200);
-        rightMotor.setPWM(200);
-        printf("200\n");
-
-        vTaskDelay(pdMS_TO_TICKS(3000));
-
-        leftMotor.setPWM(0);
-        rightMotor.setPWM(0);
-
-        vTaskDelay(pdMS_TO_TICKS(3000));
     }
+    // while (true){
+    //     leftMotor.setPWM(100);
+    //     rightMotor.setPWM(100);
+    //     printf("100\n");
+    //     printf("Levo: %.2f, Desno: %.2f\n", enkoderLeft.readRadAngle(), enkoderRight.readRadAngle());
+    //     vTaskDelay(pdMS_TO_TICKS(10));
+    // }
 }
-
-
-
-// extern "C" void app_main()
-// {
-//     // LEVI MOTOR
-//     gpio_set_direction(GPIO_NUM_25, GPIO_MODE_OUTPUT); // AIN1
-//     gpio_set_direction(GPIO_NUM_26, GPIO_MODE_OUTPUT); // AIN2
-//     gpio_set_direction(GPIO_NUM_27, GPIO_MODE_OUTPUT); // PWMA
-
-//     // DESNI MOTOR
-//     gpio_set_direction(GPIO_NUM_32, GPIO_MODE_OUTPUT); // BIN1
-//     gpio_set_direction(GPIO_NUM_33, GPIO_MODE_OUTPUT); // BIN2
-//     gpio_set_direction(GPIO_NUM_14, GPIO_MODE_OUTPUT); // PWMB
-
-//     // Početno stanje
-//     gpio_set_level(GPIO_NUM_25, 0);
-//     gpio_set_level(GPIO_NUM_26, 0);
-//     gpio_set_level(GPIO_NUM_27, 0);
-
-//     gpio_set_level(GPIO_NUM_32, 0);
-//     gpio_set_level(GPIO_NUM_33, 0);
-//     gpio_set_level(GPIO_NUM_14, 0);
-
-//     while (true)
-//     {
-//         printf("FORWARD\n");
-
-//         // Levi
-//         gpio_set_level(GPIO_NUM_25, 1); // AIN1
-//         gpio_set_level(GPIO_NUM_26, 0); // AIN2
-//         gpio_set_level(GPIO_NUM_27, 1); // PWMA
-
-//         // Desni
-//         gpio_set_level(GPIO_NUM_32, 1); // BIN1
-//         gpio_set_level(GPIO_NUM_33, 0); // BIN2
-//         gpio_set_level(GPIO_NUM_14, 1); // PWMB
-
-//         vTaskDelay(pdMS_TO_TICKS(3000));
-
-//         printf("STOP\n");
-
-//         gpio_set_level(GPIO_NUM_25, 0);
-//         gpio_set_level(GPIO_NUM_26, 0);
-//         gpio_set_level(GPIO_NUM_27, 0);
-
-//         gpio_set_level(GPIO_NUM_32, 0);
-//         gpio_set_level(GPIO_NUM_33, 0);
-//         gpio_set_level(GPIO_NUM_14, 0);
-
-//         vTaskDelay(pdMS_TO_TICKS(3000));
-
-//         printf("BACKWARD\n");
-
-//         // Levi
-//         gpio_set_level(GPIO_NUM_25, 0);
-//         gpio_set_level(GPIO_NUM_26, 1);
-//         gpio_set_level(GPIO_NUM_27, 1);
-
-//         // Desni
-//         gpio_set_level(GPIO_NUM_32, 0);
-//         gpio_set_level(GPIO_NUM_33, 1);
-//         gpio_set_level(GPIO_NUM_14, 1);
-
-//         vTaskDelay(pdMS_TO_TICKS(3000));
-
-//         printf("STOP\n");
-
-//         gpio_set_level(GPIO_NUM_25, 0);
-//         gpio_set_level(GPIO_NUM_26, 0);
-//         gpio_set_level(GPIO_NUM_27, 0);
-
-//         gpio_set_level(GPIO_NUM_32, 0);
-//         gpio_set_level(GPIO_NUM_33, 0);
-//         gpio_set_level(GPIO_NUM_14, 0);
-
-//         vTaskDelay(pdMS_TO_TICKS(3000));
-//     }
-// }
